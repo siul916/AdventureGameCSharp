@@ -1,32 +1,29 @@
-rows
-cols
-exitRow
-exitCol
-lampRow
-lampCol
-keyRow
-keyCol
-chestRow
-chestCol
-grueRow
-grueCol
-######################
-# #   ################
-# # ##################
-# # ##################
-# # ##################
-# # ##################
-# # ##################
-#           ##########
-######################
-######################
-######################
-######################
-######################
-1|Room description
-0|Room description
-0|Room description
-1|Room description
-0|Room description
-0|Room description
-1|Room description
+5
+7
+1
+5
+1
+1
+1
+3
+3
+4
+3
+1
+#######
+#L K E#
+### # #
+#G  C #
+#######
+1|Entrance hall. A brass lamp waits on a low stone shelf.
+1|A quiet corridor with old scrape marks in the dust.
+1|Key alcove. A small iron key hangs from a cracked hook.
+1|The air grows colder near the dungeon exit.
+1|Dungeon exit. Freedom is just beyond this archway.
+0|A lightless bend where every footstep echoes twice.
+1|A narrow stairwell leading back toward the exit.
+0|The Grue's den smells of damp stone and old danger.
+0|A black passage with claw marks along the wall.
+0|A dark crossing between the den and the treasure room.
+1|Treasure room. A heavy chest rests against the far wall.
+1|A short escape tunnel beside the treasure room.

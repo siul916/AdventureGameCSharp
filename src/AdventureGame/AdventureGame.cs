@@ -15,9 +15,14 @@ public class AdventureGame
 	private Room[,] dungeon;
 	private int aRow;
 	private int aCol;
+	private int exitRow;
+	private int exitCol;
+	private int grueRow;
+	private int grueCol;
 	private bool isChestOpen;
 	private bool hasPlayerQuit;
 	private bool isAdventureAlive;
+	private bool hasPlayerWon;
 	private string lastDirection;
 
 	public AdventureGame()
@@ -58,46 +63,41 @@ public class AdventureGame
 	{
 		adventurer = new Adventurer();
 
-		Room r1 = new Room();
-		r1.SetLit(true);
-		r1.SetDescription("Room 1");
-		r1.SetSouth(true);
-		r1.SetEast(true);
-		r1.SetLamp(true);
-		r1.SetKey(true);
+		Dungeon loadedDungeon = DungeonLoader.LoadDungeon(GetDungeonFilePath());
+		dungeon = loadedDungeon.Rooms;
 
-		Room r2 = new Room();
-		r2.SetDescription("Room 2");
-		r2.SetSouth(true);
-		r2.SetWest(true);
-
-		Room r3 = new Room();
-		r3.SetLit(true);
-		r3.SetDescription("Room 3");
-		r3.SetNorth(true);
-		r3.SetEast(true);
-		r3.SetChest(true);
-
-
-		Room r4 = new Room();
-		r4.SetDescription("Room 4");
-		r4.SetNorth(true);
-		r4.SetWest(true);
-
-		dungeon = new Room[,]
-		{
-			{ r1, r2 },
-			{ r3, r4 }
-		};
-
-		aRow = 1;
-		aCol = 0;
+		aRow = loadedDungeon.StartRow;
+		aCol = loadedDungeon.StartCol;
+		exitRow = loadedDungeon.ExitRow;
+		exitCol = loadedDungeon.ExitCol;
+		grueRow = loadedDungeon.GrueRow;
+		grueCol = loadedDungeon.GrueCol;
 
 		isChestOpen = false;
 		hasPlayerQuit = false;
 		isAdventureAlive = true;
+		hasPlayerWon = false;
 
 		lastDirection = string.Empty;
+	}
+
+	private string GetDungeonFilePath()
+	{
+		string? directory = AppContext.BaseDirectory;
+
+		while(directory != null)
+		{
+			string filePath = Path.Combine(directory, "res", "DungeonTemplate.txt");
+
+			if(File.Exists(filePath))
+			{
+				return filePath;
+			}
+
+			directory = Directory.GetParent(directory)?.FullName;
+		}
+
+		throw new FileNotFoundException("Could not find res/DungeonTemplate.txt.");
 	}
 
 	private void ShowGameStartScreen()
@@ -192,17 +192,52 @@ public class AdventureGame
 
 	private void UpdateGameState()
 	{
+		if(!isAdventureAlive || hasPlayerQuit)
+		{
+			return;
+		}
 
+		if(isChestOpen && aRow == exitRow && aCol == exitCol)
+		{
+			Console.WriteLine("You escaped the dungeon with the treasure!");
+			hasPlayerWon = true;
+			return;
+		}
+
+		if(!isChestOpen)
+		{
+			return;
+		}
+
+		if(IsGrueInAdventurerRoom())
+		{
+			LoseToPursuingGrue();
+			return;
+		}
+
+		MoveGrueTowardAdventurer();
+
+		if(IsGrueInAdventurerRoom())
+		{
+			LoseToPursuingGrue();
+		}
 	}
 
 	private bool IsGameOver()
 	{
-		return isChestOpen || hasPlayerQuit || !isAdventureAlive;
+		return hasPlayerWon || hasPlayerQuit || !isAdventureAlive;
 	}
 
 	private void ShowGameOverScreen()
 	{
-		Console.WriteLine("Game Over!");
+		if(hasPlayerWon)
+		{
+			Console.WriteLine("You win!");
+		}
+		else
+		{
+			Console.WriteLine("Game Over!");
+		}
 	}
 
 	private void GoNorth(Room r)
@@ -291,7 +326,7 @@ public class AdventureGame
 		{
 			if(adventurer.HasKey())
 			{
-				Console.WriteLine("You got the treasure!");
+				Console.WriteLine("You got the treasure! The Grue heard the chest open and is chasing you!");
 				isChestOpen = true;
 			}
 			else
@@ -309,5 +344,85 @@ public class AdventureGame
 	{
 		Console.WriteLine("You quit the game!");
 		hasPlayerQuit = true;
+	}
+
+	private bool IsGrueInAdventurerRoom()
+	{
+		return grueRow == aRow && grueCol == aCol;
+	}
+
+	private void LoseToPursuingGrue()
+	{
+		Console.WriteLine("The Grue caught you!");
+		isAdventureAlive = false;
+	}
+
+	private void MoveGrueTowardAdventurer()
+	{
+		Queue<(int row, int col)> frontier = new();
+		Dictionary<(int row, int col), (int row, int col)> cameFrom = new();
+		var start = (grueRow, grueCol);
+		var goal = (row: aRow, col: aCol);
+
+		frontier.Enqueue(start);
+		cameFrom[start] = start;
+
+		while(frontier.Count > 0)
+		{
+			var current = frontier.Dequeue();
+
+			if(current == goal)
+			{
+				break;
+			}
+
+			foreach(var next in GetNeighborPositions(current.row, current.col))
+			{
+				if(!cameFrom.ContainsKey(next))
+				{
+					frontier.Enqueue(next);
+					cameFrom[next] = current;
+				}
+			}
+		}
+
+		if(!cameFrom.ContainsKey(goal))
+		{
+			return;
+		}
+
+		var step = goal;
+
+		while(cameFrom[step] != start)
+		{
+			step = cameFrom[step];
+		}
+
+		grueRow = step.row;
+		grueCol = step.col;
+	}
+
+	private List<(int row, int col)> GetNeighborPositions(int row, int col)
+	{
+		List<(int row, int col)> positions = new();
+
+		AddIfTraversable(positions, row - 1, col);
+		AddIfTraversable(positions, row, col + 1);
+		AddIfTraversable(positions, row + 1, col);
+		AddIfTraversable(positions, row, col - 1);
+
+		return positions;
+	}
+
+	private void AddIfTraversable(List<(int row, int col)> positions, int row, int col)
+	{
+		if(row >= 0 &&
+			row < dungeon.GetLength(0) &&
+			col >= 0 &&
+			col < dungeon.GetLength(1) &&
+			dungeon[row, col] != null)
+		{
+			positions.Add((row, col));
+		}
 	}
 }

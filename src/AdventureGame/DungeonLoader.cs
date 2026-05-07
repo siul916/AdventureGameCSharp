@@ -6,6 +6,11 @@ public static class DungeonLoader
 
 	public static Room[,] Load(string filePath)
 	{
+		return LoadDungeon(filePath).Rooms;
+	}
+
+	public static Dungeon LoadDungeon(string filePath)
+	{
 		string[] lines = File.ReadAllLines(filePath);
 
 		int rows = int.Parse(lines[0]);
@@ -19,8 +24,8 @@ public static class DungeonLoader
 		int keyCol = int.Parse(lines[7]);
 		int chestRow = int.Parse(lines[8]);
 		int chestCol = int.Parse(lines[9]);
-
-		// lines[10] and lines[11] are grueRow/grueCol if needed elsewhere
+		int grueRow = int.Parse(lines[10]);
+		int grueCol = int.Parse(lines[11]);
 
 		int layoutStart = 12;
 		int descriptionsStart = layoutStart + rows;
@@ -90,8 +95,19 @@ public static class DungeonLoader
 		}
 
 		ValidateTraversableTile(dungeon, exitRow, exitCol, "exit");
+		ValidateTraversableTile(dungeon, grueRow, grueCol, "grue");
 
-		return dungeon;
+		var start = traversableTiles.First();
+
+		return new Dungeon(
+			dungeon,
+			start.row,
+			start.col,
+			exitRow,
+			exitCol,
+			grueRow,
+			grueCol
+		);
 	}
 
 	private static bool IsTraversable(Room[,] dungeon, int row, int col)
@@ -108,4 +124,26 @@ public static class DungeonLoader
 		if (!IsTraversable(dungeon, row, col))
 			throw new FormatException($"The {name} position must be on a traversable tile.");
 	}
+}
+
+public class Dungeon
+{
+	public Dungeon(Room[,] rooms, int startRow, int startCol, int exitRow, int exitCol, int grueRow, int grueCol)
+	{
+		Rooms = rooms;
+		StartRow = startRow;
+		StartCol = startCol;
+		ExitRow = exitRow;
+		ExitCol = exitCol;
+		GrueRow = grueRow;
+		GrueCol = grueCol;
+	}
+
+	public Room[,] Rooms { get; }
+	public int StartRow { get; }
+	public int StartCol { get; }
+	public int ExitRow { get; }
+	public int ExitCol { get; }
+	public int GrueRow { get; }
+	public int GrueCol { get; }
 }
